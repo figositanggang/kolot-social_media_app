@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kolot/components/text_button.dart';
 import 'package:kolot/provider/add_post_navigation_provider_.dart';
 import 'package:kolot/resources/post_method.dart';
 import 'package:kolot/utils/utils.dart';
@@ -51,6 +52,7 @@ class _AddPostNavigationState extends State<AddPostNavigation>
     );
   }
 
+  // Post
   void _post(AddPostNavigationProvider provider) async {
     setState(() {
       isLoading = true;
@@ -175,6 +177,44 @@ class _AddPostNavigationState extends State<AddPostNavigation>
           key: key,
           child: Column(
             children: [
+              AppBar(
+                title: Text("Post"),
+                actions: [
+                  IconButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text("Hapus Post"),
+                          content: Text("Anda Yakin?"),
+                          actions: [
+                            MyTextButton(
+                              child: Text("Ya"),
+                              onTap: () {
+                                try {
+                                  addPostNavigationProvider.image = null;
+                                  addPostNavigationProvider.caption.text = "";
+                                } catch (e) {}
+
+                                Navigator.pop(context);
+                              },
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 10),
+                            ),
+                            TextButton(
+                              child: Text("Tidak"),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.delete),
+                  ),
+                ],
+              ),
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,

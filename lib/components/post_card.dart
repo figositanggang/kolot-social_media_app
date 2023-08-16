@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:kolot/models/post_model.dart';
 import 'package:kolot/models/user_model.dart';
+import 'package:kolot/pages/comments_page.dart';
 import 'package:kolot/pages/other_user_page.dart';
 import 'package:kolot/provider/bottom_navigation_provider.dart';
 import 'package:kolot/resources/post_method.dart';
@@ -32,15 +33,9 @@ class _PostCardState extends State<PostCard> {
 
   checkLike() {
     if (widget.post.likes.contains(_currentUser.uid)) {
-      return Icon(
-        Icons.favorite,
-        color: Colors.blue,
-      );
+      return Icon(Icons.favorite);
     } else {
-      return Icon(
-        Icons.favorite_border,
-        color: Colors.blue,
-      );
+      return Icon(Icons.favorite_border);
     }
   }
 
@@ -241,8 +236,7 @@ class _PostCardState extends State<PostCard> {
                         opacity: _opacity,
                         child: Icon(
                           Icons.favorite,
-                          color: Colors.blue,
-                          size: 200,
+                          size: 125,
                           shadows: [
                             Shadow(
                               color: Colors.black.withOpacity(.5),
@@ -258,31 +252,54 @@ class _PostCardState extends State<PostCard> {
             ),
 
             SizedBox(height: 5),
-            // Likes
-            IconButton(
-              icon: checkLike(),
-              onPressed: () {
-                PostMethods.giveRemoveLike(
-                  postId: widget.postId,
-                  userId: _currentUser.uid,
-                );
-              },
+            // Likes & Comments
+            Row(
+              children: [
+                // Likes
+                IconButton(
+                  tooltip: "Suka",
+                  icon: Row(
+                    children: [
+                      checkLike(),
+                      SizedBox(width: 5),
+                      Text("${post.likes.length}"),
+                    ],
+                  ),
+                  onPressed: () {
+                    PostMethods.giveRemoveLike(
+                      postId: widget.postId,
+                      userId: _currentUser.uid,
+                    );
+                  },
+                ),
+
+                // Comments
+                IconButton(
+                  tooltip: "Komen",
+                  icon: Row(
+                    children: [
+                      Icon(LineIcons.comment),
+                      SizedBox(width: 5),
+                      Text("${post.comments.length}"),
+                    ],
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CommentsPage(
+                            postId: widget.postId,
+                          ),
+                        ));
+                  },
+                ),
+              ],
             ),
 
-            // Likes & Caption
             Container(
               padding: EdgeInsets.only(left: 10),
               width: MediaQuery.of(context).size.width,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("${post.likes.length} suka"),
-
-                  SizedBox(height: 5),
-                  // Caption
-                  Text(post.caption),
-                ],
-              ),
+              child: Text(post.caption),
             ),
           ],
         ),

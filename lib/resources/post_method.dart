@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kolot/models/comment_model.dart';
 
 import 'package:kolot/models/post_model.dart';
 import 'package:kolot/resources/storage_method.dart';
@@ -56,6 +57,7 @@ class PostMethods {
         caption: caption,
         mediaUrl: mediaUrl,
         likes: [],
+        comments: [],
         time: DateTime.now(),
       );
 
@@ -95,6 +97,28 @@ class PostMethods {
           .doc(postId)
           .update({"likes": likes});
     }
+  }
+
+  // Add Comment
+  static Future<String> addComment(CommentModel comment,
+      {required String postId}) async {
+    String res = "";
+
+    DocumentSnapshot snap =
+        await _firebaseFirestore.collection("posts").doc(postId).get();
+
+    List comments = snap['comments'];
+
+    comments.add(comment.toJson());
+
+    res = await _firebaseFirestore
+        .collection("posts")
+        .doc(postId)
+        .update({"comments": comments})
+        .then((value) => "success")
+        .onError((error, stackTrace) => "error");
+
+    return res;
   }
 
   // Delete Post

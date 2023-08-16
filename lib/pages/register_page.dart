@@ -5,14 +5,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:kolot/components/text_button.dart';
 import 'package:kolot/components/text_field.dart';
 import 'package:kolot/pages/home_page.dart';
-import 'package:kolot/pages/login_page.dart';
 import 'package:kolot/provider/add_post_navigation_provider_.dart';
 import 'package:kolot/provider/auth_provider.dart';
 import 'package:kolot/resources/auth_method.dart';
 import 'package:kolot/utils/utils.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
-import 'package:string_validator/string_validator.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

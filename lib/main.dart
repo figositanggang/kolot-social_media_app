@@ -49,9 +49,12 @@ class MyApp extends StatelessWidget {
         dialogTheme:
             DialogTheme(backgroundColor: Color.fromARGB(255, 8, 20, 25)),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.blue.withOpacity(.05),
+          backgroundColor: Color.fromARGB(255, 8, 20, 25),
           foregroundColor: Colors.white,
           elevation: 0,
+        ),
+        listTileTheme: ListTileThemeData(
+          subtitleTextStyle: TextStyle(color: Colors.white),
         ),
         snackBarTheme:
             SnackBarThemeData(backgroundColor: Color.fromARGB(255, 0, 0, 0)),

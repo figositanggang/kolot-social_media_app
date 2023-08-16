@@ -6,6 +6,7 @@ class PostModel {
   final String caption;
   final String mediaUrl;
   final List likes;
+  final List comments;
   final DateTime time;
 
   PostModel({
@@ -14,6 +15,7 @@ class PostModel {
     required this.caption,
     required this.mediaUrl,
     required this.likes,
+    required this.comments,
     required this.time,
   });
 
@@ -23,6 +25,7 @@ class PostModel {
         "caption": caption,
         "mediaUrl": mediaUrl,
         "likes": likes,
+        "comments": comments,
         "time": time,
       };
 
@@ -35,6 +38,7 @@ class PostModel {
       caption: snap['caption'],
       mediaUrl: snap['mediaUrl'],
       likes: snap['likes'],
+      comments: snap['comments'],
       time: snap['time'].toDate(),
     );
   }

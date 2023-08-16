@@ -1,3 +1,5 @@
+import 'dart:js_interop';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -69,33 +71,35 @@ class AuthMethods {
         password: password,
       );
 
-      String photoUrl = await StorageMethods.uploadMedia(
-        childName: "profilePics",
-        file: file,
-        isPost: false,
-      );
+      if (!userCredential.isNull) {
+        String photoUrl = await StorageMethods.uploadMedia(
+          childName: "profilePics",
+          file: file,
+          isPost: false,
+        );
 
-      print("image ada");
+        print("image ada");
 
-      UserModel user = UserModel(
-        uid: userCredential.user!.uid,
-        email: email,
-        username: username,
-        name: name,
-        bio: bio,
-        photoUrl: photoUrl,
-        followers: [],
-        following: [],
-      );
+        UserModel user = UserModel(
+          uid: userCredential.user!.uid,
+          email: email,
+          username: username,
+          name: name,
+          bio: bio,
+          photoUrl: photoUrl,
+          followers: [],
+          following: [],
+        );
 
-      // add user to database
-      await firebaseFirestore
-          .collection("users")
-          .doc(userCredential.user!.uid)
-          .set(
-            user.toJson(),
-          );
-      res = "Success";
+        // add user to database
+        await firebaseFirestore
+            .collection("users")
+            .doc(userCredential.user!.uid)
+            .set(
+              user.toJson(),
+            );
+        res = "Success";
+      }
     } catch (e) {
       res = e.toString();
     }

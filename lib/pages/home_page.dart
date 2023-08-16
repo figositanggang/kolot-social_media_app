@@ -46,67 +46,9 @@ class _HomePageState extends State<HomePage> {
       ),
     ];
 
-    final List<AppBar?> appBar = [
-      // Home
-      AppBar(
-        title: Text(
-          "Kolot",
-          style: TextStyle(
-            fontFamily: GoogleFonts.arvo().fontFamily,
-            letterSpacing: 2,
-          ),
-        ),
-      ),
-
-      // Search
-      null,
-
-      // Post
-      AppBar(
-        title: Text("Post"),
-        actions: [
-          IconButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text("Hapus Post"),
-                  content: Text("Anda Yakin?"),
-                  actions: [
-                    MyTextButton(
-                      child: Text("Ya"),
-                      onTap: () {
-                        try {
-                          addPostNavigationProvider.image = null;
-                          addPostNavigationProvider.caption.text = "";
-                        } catch (e) {}
-
-                        Navigator.pop(context);
-                      },
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    ),
-                    TextButton(
-                      child: Text("Tidak"),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-            icon: Icon(Icons.delete),
-          ),
-        ],
-      ),
-
-      // Profi;e
-      null
-    ];
-
     return Scaffold(
-      appBar: appBar[bottomNavigationProvider.currentIndex],
+      extendBodyBehindAppBar: true,
+
       body: IndexedStack(
         children: body,
         index: bottomNavigationProvider.currentIndex,
