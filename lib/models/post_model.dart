@@ -5,6 +5,8 @@ class PostModel {
   final String userId;
   final String caption;
   final String mediaUrl;
+  final String mediaName;
+  final String type;
   final List likes;
   final List comments;
   final DateTime time;
@@ -14,6 +16,8 @@ class PostModel {
     required this.userId,
     required this.caption,
     required this.mediaUrl,
+    required this.mediaName,
+    required this.type,
     required this.likes,
     required this.comments,
     required this.time,
@@ -24,6 +28,8 @@ class PostModel {
         "uid": userId,
         "caption": caption,
         "mediaUrl": mediaUrl,
+        "mediaName": mediaName,
+        "type": type,
         "likes": likes,
         "comments": comments,
         "time": time,
@@ -37,6 +43,8 @@ class PostModel {
       userId: snap['uid'],
       caption: snap['caption'],
       mediaUrl: snap['mediaUrl'],
+      mediaName: snap['mediaName'],
+      type: snap['type'],
       likes: snap['likes'],
       comments: snap['comments'],
       time: snap['time'].toDate(),

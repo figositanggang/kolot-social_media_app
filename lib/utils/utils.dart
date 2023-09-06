@@ -1,25 +1,41 @@
+import 'dart:io';
+import 'dart:html' as html;
+
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kolot/provider/add_post_navigation_provider_.dart';
+import 'package:image_picker_web/image_picker_web.dart';
 
-pickImage(ImageSource source, {AddPostNavigationProvider? provider}) async {
-  String res = "error";
-  final ImagePicker imagePicker = ImagePicker();
+class Utils {
+  static Future pickImage(ImageSource source) async {
+    final ImagePicker imagePicker = ImagePicker();
 
-  XFile? file;
+    XFile? file;
+    html.File? webFile;
 
-  if (source == ImageSource.gallery) {
-    file = await imagePicker.pickImage(source: ImageSource.gallery);
-    res = "success";
-    provider!.image = await file!.readAsBytes();
-  } else if (source == ImageSource.camera) {
-    file = await imagePicker.pickImage(source: source);
-    res = "success";
-    provider!.image = await file!.readAsBytes();
-  }
+    // Web
+    if (kIsWeb) {
+      webFile = await ImagePickerWeb.getImageAsFile();
+    }
 
-  if (file != null) {
-    return await file.readAsBytes();
-  } else {
-    return res;
+    // Mobile
+    else {
+      if (source == ImageSource.gallery) {
+        file = await imagePicker.pickMedia();
+      } else if (source == ImageSource.camera) {
+        file = await imagePicker.pickImage(source: source);
+      }
+    }
+
+    if (file != null || webFile != null) {
+      // Web
+      if (kIsWeb) {
+        return webFile;
+      }
+
+      // Mobile
+      return File(file!.path);
+    }
+
+    return null;
   }
 }

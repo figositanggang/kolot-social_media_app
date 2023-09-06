@@ -1,9 +1,9 @@
-import 'dart:typed_data';
+import 'dart:io';
+import 'dart:html' as html;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kolot/models/comment_model.dart';
-
 import 'package:kolot/models/post_model.dart';
 import 'package:kolot/resources/storage_method.dart';
 
@@ -11,8 +11,8 @@ class PostMethods {
   static final FirebaseFirestore _firebaseFirestore =
       FirebaseFirestore.instance;
 
-  // Post Details
-  static Stream<QuerySnapshot<Map<String, dynamic>>> getPostDetails() {
+  // Get All Posts
+  static Stream<QuerySnapshot<Map<String, dynamic>>> getAllPosts() {
     Stream<QuerySnapshot<Map<String, dynamic>>> snap = _firebaseFirestore
         .collection("posts")
         .orderBy(
@@ -24,6 +24,11 @@ class PostMethods {
     return snap;
   }
 
+  // for (var i = 0; i < await snap.length; i++) {
+  //   await Future.delayed(Duration(milliseconds: 500));
+  //   yield snap;
+  // }
+
   // Users' Posts
   static Future<List<QueryDocumentSnapshot>> getUserPosts(String userId) async {
     QuerySnapshot snap = await _firebaseFirestore
@@ -34,21 +39,23 @@ class PostMethods {
     return snap.docs;
   }
 
-  // Posting
-  static Future<String> post({
+  // Posting from Mobile
+  static Future<String> postMobile({
     required String postId,
     required String caption,
-    required Uint8List media,
+    required String type,
+    required File media,
   }) async {
-    String res = "Coba";
+    String res = "error";
 
     try {
       // Upload Media
-      String mediaUrl = await StorageMethods.uploadMedia(
+      String mediaUrl = await StorageMethods.uploadMediaMobile(
         childName: "postMedia",
         file: media,
-        isPost: false,
       );
+
+      String mediaName = Uri.parse(mediaUrl).pathSegments.last.substring(10);
 
       // post
       final post = PostModel(
@@ -56,17 +63,70 @@ class PostMethods {
         userId: postId,
         caption: caption,
         mediaUrl: mediaUrl,
+        mediaName: mediaName,
+        type: type,
         likes: [],
         comments: [],
         time: DateTime.now(),
       );
 
       // Add Post to Firebase
-      await _firebaseFirestore.collection("posts").doc().set(
+      await _firebaseFirestore.collection("posts").doc("aw").set(
             post.toJson(),
           );
 
-      res = "Success";
+      res = "success";
+    } on FirebaseAuthException catch (e) {
+      res = e.toString();
+    }
+
+    return res;
+  }
+
+  // Posting from Web
+  static Future<String> postWeb({
+    required String postId,
+    required String caption,
+    required String type,
+    required html.File media,
+  }) async {
+    String res = "error";
+
+    try {
+      // Upload Media
+      String mediaUrl = await StorageMethods.uploadMediaWeb(
+        childName: "postMedia",
+        file: media,
+      );
+      String mediaName = Uri.parse(mediaUrl).pathSegments.last.substring(10);
+
+      // Tidak Error Upload Media
+      if (mediaUrl != "error") {
+        // post
+        final post = PostModel(
+          postId: postId,
+          userId: postId,
+          caption: caption,
+          mediaUrl: mediaUrl,
+          mediaName: mediaName,
+          type: type,
+          likes: [],
+          comments: [],
+          time: DateTime.now(),
+        );
+
+        // Add Post to Firebase
+        await _firebaseFirestore.collection("posts").doc().set(
+              post.toJson(),
+            );
+
+        res = "success";
+      }
+
+      // Error Upload Media
+      else {
+        res = "error";
+      }
     } on FirebaseAuthException catch (e) {
       res = e.toString();
     }
@@ -75,7 +135,7 @@ class PostMethods {
   }
 
   // Give or Remove Like
-  static Future giveRemoveLike({
+  static Future<bool> giveRemoveLike({
     required String postId,
     required String userId,
   }) async {
@@ -90,12 +150,14 @@ class PostMethods {
           .collection("posts")
           .doc(postId)
           .update({"likes": likes});
+      return true;
     } else {
       likes.remove(userId);
       await _firebaseFirestore
           .collection("posts")
           .doc(postId)
           .update({"likes": likes});
+      return false;
     }
   }
 
@@ -122,14 +184,18 @@ class PostMethods {
   }
 
   // Delete Post
-  static Future<String> deletePost(String postId) async {
-    String res = "";
-    await _firebaseFirestore
-        .collection("posts")
-        .doc(postId)
-        .delete()
-        .then((value) => res = "success")
-        .onError((error, stackTrace) => res = "error");
+  static Future<String> deletePost(PostModel post, String docId) async {
+    String res = "error";
+
+    try {
+      String delete = await StorageMethods.deleteMedia(post.mediaName);
+      if (delete == "success") {
+        await _firebaseFirestore.collection("posts").doc(docId).delete();
+      }
+      res = "success";
+    } catch (e) {
+      res = "error";
+    }
 
     return res;
   }

@@ -9,6 +9,14 @@ packages:
       url: "https://pub-web.flutter-io.cn"
     source: hosted
     version: "1.3.4"
+  appinio_video_player:
+    dependency: "direct main"
+    description:
+      name: appinio_video_player
+      sha256: f39a7fdebda31f72970a79a4263ceb049f2958dba9e87403235fec32d5a3ff58
+      url: "https://pub-web.flutter-io.cn"
+    source: hosted
+    version: "1.2.2"
   async:
     dependency: transitive
     description:
@@ -137,6 +145,14 @@ packages:
       url: "https://pub-web.flutter-io.cn"
     source: hosted
     version: "2.1.17"
+  exifdart:
+    dependency: transitive
+    description:
+      name: exifdart
+      sha256: d967ff02540b5d0b8459af44d071a6f0ffeb8edb2c956737b6ab13daab41f75b
+      url: "https://pub-web.flutter-io.cn"
+    source: hosted
+    version: "0.8.0-dev.2"
   fake_async:
     dependency: transitive
     description:
@@ -329,7 +345,7 @@ packages:
     source: hosted
     version: "0.15.4"
   http:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: http
       sha256: "759d1a329847dd0f39226c688d3e06a6b8679668e350e2891a6474f8b4bb8525"
@@ -400,6 +416,14 @@ packages:
       url: "https://pub-web.flutter-io.cn"
     source: hosted
     version: "2.9.0"
+  image_picker_web:
+    dependency: "direct main"
+    description:
+      name: image_picker_web
+      sha256: e1656f1ce48a614aefdf22ab73c0cc7e498fa7b78893ffdcc83171e7289092e0
+      url: "https://pub-web.flutter-io.cn"
+    source: hosted
+    version: "3.1.1"
   image_picker_windows:
     dependency: transitive
     description:
@@ -408,6 +432,14 @@ packages:
       url: "https://pub-web.flutter-io.cn"
     source: hosted
     version: "0.2.1"
+  image_whisperer:
+    dependency: "direct main"
+    description:
+      name: image_whisperer
+      sha256: "64ca4e0ee27ffdc4c9fdec7bb2675153df993ba72bbd2b8b5c34b26425396cac"
+      url: "https://pub-web.flutter-io.cn"
+    source: hosted
+    version: "0.11.1-dev.1"
   ionicons:
     dependency: "direct main"
     description:
@@ -465,7 +497,7 @@ packages:
     source: hosted
     version: "1.9.1"
   mime:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: mime
       sha256: e4ff8e8564c03f255408decd16e7899da1733852a9110a58fe6d1b817684a63e
@@ -489,7 +521,7 @@ packages:
     source: hosted
     version: "1.0.2"
   path:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path
       sha256: "8829d8a55c13fc0e37127c29fedf290c102f4e40ae94ada574091fe0ff96c917"
@@ -705,10 +737,10 @@ packages:
     dependency: "direct main"
     description:
       name: string_validator
-      sha256: b419cf5d21d608522e6e7cafed4deb34b6f268c43df866e63c320bab98a08cf6
+      sha256: "50dd8ecf91db6a732f4a851eeae81ee12406eedc62d0da72f2d91a04a2d10dd8"
       url: "https://pub-web.flutter-io.cn"
     source: hosted
-    version: "1.0.0"
+    version: "0.3.0"
   synchronized:
     dependency: transitive
     description:

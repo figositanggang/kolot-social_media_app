@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:kolot/models/post_model.dart';
 import 'package:kolot/models/user_model.dart';
+import 'package:kolot/pages/add_post_navigation.dart';
 import 'package:kolot/pages/followers_following_page.dart';
 import 'package:kolot/pages/user_posts_page.dart';
 
@@ -79,7 +80,7 @@ class _ProfileNavigationState extends State<ProfileNavigation>
         Provider.of<BottomNavigationProvider>(context);
 
     return StreamBuilder(
-      stream: AuthMethods.getUserDetails(),
+      stream: AuthMethods.getUserDetails(currentUser.uid),
       builder: (context, snapshot) {
         Widget child = Center();
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -89,6 +90,8 @@ class _ProfileNavigationState extends State<ProfileNavigation>
         } else if (snapshot.hasData) {
           // Current User
           final user = UserModel.fromSnap(snapshot.data);
+
+          // print("FOLLOWERS GUA: ${user.followers}");
 
           child = Scaffold(
             backgroundColor: Colors.transparent,
@@ -103,6 +106,18 @@ class _ProfileNavigationState extends State<ProfileNavigation>
                 ),
               ),
               actions: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddPostNavigation(),
+                      ),
+                    );
+                  },
+                  tooltip: "Posting",
+                  icon: Icon(Ionicons.add),
+                ),
                 IconButton(
                   onPressed: () {
                     showModalBottomSheet(
@@ -357,9 +372,9 @@ class _ProfileNavigationState extends State<ProfileNavigation>
                                                 MaterialPageRoute(
                                                   builder: (context) =>
                                                       UserPostsPage(
-                                                          post: post,
-                                                          postId:
-                                                              data[index].id),
+                                                    page: index,
+                                                    uid: currentUser.uid,
+                                                  ),
                                                 ),
                                               );
                                             },

@@ -16,7 +16,8 @@ class CommentsPage extends StatefulWidget {
   State<CommentsPage> createState() => _CommentsPageState();
 }
 
-class _CommentsPageState extends State<CommentsPage> {
+class _CommentsPageState extends State<CommentsPage>
+    with AutomaticKeepAliveClientMixin {
   TextEditingController controller = TextEditingController();
   final currentUser = FirebaseAuth.instance.currentUser!;
 
@@ -51,12 +52,12 @@ class _CommentsPageState extends State<CommentsPage> {
       ),
       postId: widget.postId,
     );
-
-    print(res);
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Komen"),
@@ -111,7 +112,7 @@ class _CommentsPageState extends State<CommentsPage> {
                               title: Text(user.username),
                               subtitle: Container(
                                 padding: EdgeInsets.all(8),
-                                color: Colors.white.withOpacity(.1),
+                                color: Colors.white.withOpacity(.05),
                                 child: Text(
                                   comment.comment,
                                   style: TextStyle(color: Colors.white),
@@ -159,4 +160,7 @@ class _CommentsPageState extends State<CommentsPage> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

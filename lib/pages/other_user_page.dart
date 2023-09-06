@@ -5,18 +5,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
-import 'package:kolot/components/text_button.dart';
 import 'package:kolot/models/post_model.dart';
 import 'package:kolot/models/user_model.dart';
 import 'package:kolot/pages/followers_following_page.dart';
 import 'package:kolot/pages/user_posts_page.dart';
+import 'package:kolot/resources/auth_method.dart';
 import 'package:kolot/resources/follow_method.dart';
 import 'package:kolot/resources/post_method.dart';
 
 class OtherUserPage extends StatefulWidget {
-  final String userId;
   final UserModel user;
-  const OtherUserPage({super.key, required this.userId, required this.user});
+  final String uid;
+
+  const OtherUserPage({super.key, required this.user, required this.uid});
 
   @override
   State<OtherUserPage> createState() => _OtherUserPageState();
@@ -24,7 +25,7 @@ class OtherUserPage extends StatefulWidget {
 
 class _OtherUserPageState extends State<OtherUserPage> {
   int postsLength = 0;
-  final _currentUser = FirebaseAuth.instance.currentUser!;
+  User currentUser = FirebaseAuth.instance.currentUser!;
 
   @override
   void initState() {
@@ -32,161 +33,123 @@ class _OtherUserPageState extends State<OtherUserPage> {
 
     getPosts();
     getUserPosts();
-    isFollowed();
   }
 
+  // Get User Posts
   getUserPosts() async {
-    var snap = await PostMethods.getUserPosts(widget.userId);
+    var snap = await PostMethods.getUserPosts(widget.uid);
     setState(() {
       postsLength = snap.length;
     });
   }
 
-  Future<UserModel> getUserDetails() async {
-    DocumentSnapshot snap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(widget.userId)
-        .get();
-
-    return UserModel.fromSnap(snap);
-  }
-
-  Future<bool> isFollowed() async {
-    DocumentSnapshot snap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(widget.userId)
-        .get();
-
-    UserModel user = UserModel.fromSnap(snap);
-
-    return user.followers.contains(_currentUser.uid);
-  }
-
+  // Get Post
   Stream<QuerySnapshot<Map<String, dynamic>>> getPosts() {
     return FirebaseFirestore.instance
         .collection("posts")
-        .where("uid", isEqualTo: widget.userId)
+        .where("uid", isEqualTo: widget.uid)
         .orderBy("time", descending: true)
         .snapshots();
   }
 
-  void _showProfilePic(UserModel user) {
+  // Show Profile Picture
+  void _showProfilePic(UserModel data) {
     showDialog(
       context: context,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.network(
+              data.photoUrl,
+              width: 250,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                user.photoUrl,
-                width: 250,
-              ),
-            )),
+          ),
+        ),
       ),
     );
   }
 
-  _follow() async {
-    await FollowMethods.follow(
-      followerId: _currentUser.uid,
-      followingId: widget.userId,
-    );
+  // Follow
+  Future<void> follow() async {
+    String res = await FollowMethods.follow(widget.uid);
+  }
 
-    setState(() {});
+  // Un-Follow
+  Future<void> unFollow() async {
+    String res = await FollowMethods.unFollow(widget.uid);
+  }
+
+  // Check Apakah Sudah di-Follow
+  Future<bool> checkFollowed(String uid) async {
+    bool res = await FollowMethods.isFollowed(uid);
+
+    return res;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        title: Text(
-          widget.user.username,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          // Follow Button
-          FutureBuilder(
-            future: isFollowed(),
-            builder: (context, snapshot) {
-              Widget child = Center();
+    return StreamBuilder(
+      stream: AuthMethods.getUserDetails(widget.uid),
+      builder: (context, snapshot) {
+        Widget child = Center();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          child = Center(
+            child: CircularProgressIndicator(),
+          );
+        } else if (snapshot.hasData) {
+          // Current User
+          final user = UserModel.fromSnap(snapshot.data);
 
-              // Following
-              if (snapshot.hasData) {
-                if (snapshot.data == true) {
-                  child = TextButton(
-                    child: Text(
-                      "Mengikuti",
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text("Berhenti follow?"),
-                          actions: [
-                            MyTextButton(
-                              child: Text("Ya"),
-                              onTap: _follow,
-                            ),
-                            MyTextButton(
-                              child: Text("Tidak"),
-                              onTap: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    style: ButtonStyle(
-                      padding: MaterialStatePropertyAll(
-                        EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                      ),
-                    ),
-                  );
-                } else {
-                  child = TextButton(
-                    child: Text(
-                      "Ikuti",
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    onPressed: _follow,
-                    style: ButtonStyle(
-                      padding: MaterialStatePropertyAll(
-                        EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                      ),
-                    ),
-                  );
-                }
-              } else {
-                child = Text("...");
-              }
+          child = Scaffold(
+            appBar: AppBar(
+              title: Text(widget.user.username),
+              actions: [
+                FutureBuilder(
+                  future: checkFollowed(user.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      bool isFollowed = snapshot.data!;
 
-              return child;
-            },
-          ),
+                      if (currentUser.uid == widget.uid) {
+                        return SizedBox();
+                      }
 
-          SizedBox(width: 10),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Atas
-          FutureBuilder(
-            future: getUserDetails(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                final user = snapshot.data!;
+                      // Followed
+                      else if (isFollowed) {
+                        return TextButton(
+                          child: Text("Mengikuti"),
+                          onPressed: () {
+                            unFollow();
+                          },
+                        );
+                      }
 
-                return Container(
+                      // Not Followed
+                      else {
+                        return TextButton(
+                          child: Text("Ikuti"),
+                          onPressed: () {
+                            follow();
+                          },
+                        );
+                      }
+                    }
+
+                    return SizedBox();
+                  },
+                ),
+              ],
+            ),
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Atas
+                Container(
                   width: MediaQuery.of(context).size.width,
                   padding: const EdgeInsets.all(15.0),
                   child: Column(
@@ -240,7 +203,7 @@ class _OtherUserPageState extends State<OtherUserPage> {
                                           builder: (context) =>
                                               FollowersFollowingPage(
                                             isFollower: true,
-                                            uid: widget.userId,
+                                            uid: user.uid,
                                           ),
                                         ),
                                       );
@@ -262,7 +225,7 @@ class _OtherUserPageState extends State<OtherUserPage> {
                                           builder: (context) =>
                                               FollowersFollowingPage(
                                             isFollower: false,
-                                            uid: widget.userId,
+                                            uid: user.uid,
                                           ),
                                         ),
                                       );
@@ -299,210 +262,144 @@ class _OtherUserPageState extends State<OtherUserPage> {
                       ),
                     ],
                   ),
-                );
-              } else {
-                return Container(
-                  width: MediaQuery.of(context).size.width,
-                  padding: const EdgeInsets.all(15.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Foto Profil
-                          CircleAvatar(
-                            backgroundColor: Colors.grey,
-                            radius: 50,
-                          ),
-
-                          // Followers Following
-                          Expanded(
-                            child: Container(
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  // Posts
-                                  Column(
-                                    children: [
-                                      Text("Posts"),
-                                      Text("0"),
-                                    ],
-                                  ),
-
-                                  // Followers
-                                  Column(
-                                    children: [
-                                      Text("Followers"),
-                                      Text("0"),
-                                    ],
-                                  ),
-
-                                  // Following
-                                  Column(
-                                    children: [
-                                      Text("Following"),
-                                      Text("0"),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-
-                      SizedBox(height: 10),
-
-                      // Nama
-                      Text(
-                        "username",
-                        style: TextStyle(
-                          letterSpacing: 2,
-                          fontSize: 18,
-                        ),
-                      ),
-
-                      // Bio
-                      Text(
-                        "bio",
-                        style: TextStyle(color: Colors.white.withOpacity(.5)),
-                      ),
-                    ],
-                  ),
-                );
-              }
-            },
-          ),
-
-          // Bawah (Posts)
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.white.withOpacity(.5)),
                 ),
-              ),
-              child: SingleChildScrollView(
-                child: StreamBuilder(
-                  stream: getPosts(),
-                  builder: (context, snapshot) {
-                    Widget child = Center();
 
-                    if (snapshot.hasData && snapshot.data!.docs.length != 0) {
-                      final List<QueryDocumentSnapshot<Map<String, dynamic>>>
-                          posts = snapshot.data!.docs;
+                // Bawah (Posts)
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.white.withOpacity(.5)),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      child: StreamBuilder(
+                        stream: getPosts(),
+                        builder: (context, snapshot) {
+                          Widget child = Center();
 
-                      child = GridView.builder(
-                        shrinkWrap: true,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 3,
-                          mainAxisSpacing: 3,
-                        ),
-                        itemCount: posts.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final post = PostModel.fromSnap(posts[index]);
+                          if (snapshot.hasData &&
+                              snapshot.data!.docs.length != 0) {
+                            final List<
+                                    QueryDocumentSnapshot<Map<String, dynamic>>>
+                                data = snapshot.data!.docs;
 
-                          return SizedBox(
-                            height: 100,
-                            width: 100,
-                            child: Stack(
-                              children: [
-                                SizedBox(
-                                  height: double.infinity,
-                                  width: double.infinity,
-                                  child: CachedNetworkImage(
-                                    fit: BoxFit.cover,
-                                    imageUrl: post.mediaUrl,
-                                    placeholder: (context, url) =>
-                                        Icon(Icons.photo),
-                                  ),
-                                ),
-                                Positioned.fill(
-                                  child: Material(
-                                    elevation: 0,
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => UserPostsPage(
-                                              post: post,
-                                              postId: post.postId,
-                                            ),
+                            child = GridView.builder(
+                              shrinkWrap: true,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 3,
+                                mainAxisSpacing: 3,
+                              ),
+                              itemCount: data.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final post = PostModel.fromSnap(data[index]);
+
+                                return SizedBox(
+                                  height: 100,
+                                  width: 100,
+                                  child: Stack(
+                                    children: [
+                                      SizedBox(
+                                        height: double.infinity,
+                                        width: double.infinity,
+                                        child: CachedNetworkImage(
+                                          fit: BoxFit.cover,
+                                          imageUrl: post.mediaUrl,
+                                          placeholder: (context, url) =>
+                                              Icon(Icons.photo),
+                                        ),
+                                      ),
+                                      Positioned.fill(
+                                        child: Material(
+                                          elevation: 0,
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      UserPostsPage(
+                                                    page: index,
+                                                    uid: widget.uid,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            splashColor:
+                                                Colors.black.withOpacity(.25),
+                                            highlightColor:
+                                                Colors.black.withOpacity(.25),
                                           ),
-                                        );
-                                      },
-                                      splashColor:
-                                          Colors.black.withOpacity(.25),
-                                      highlightColor:
-                                          Colors.black.withOpacity(.25),
-                                    ),
+                                        ),
+                                      )
+                                    ],
                                   ),
-                                )
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    }
+                                );
+                              },
+                            );
+                          }
 
-                    // Loading
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      child = Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-
-                    // No Data
-                    else if (!snapshot.hasData &&
-                        snapshot.data!.docs.length == 0) {
-                      child = Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              Stack(
-                                children: [
-                                  Icon(
-                                    Ionicons.image_outline,
-                                    size: 100,
-                                    color: Colors.white,
-                                  ),
-                                  Positioned(
-                                    top: 25,
-                                    left: 10,
-                                    child: Icon(
-                                      Ionicons.alert_outline,
-                                      size: 30,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
+                          // Loading
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            child = Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Center(
+                                child: CircularProgressIndicator(),
                               ),
-                              SizedBox(height: 5),
-                              Text("Tidak ada postingan"),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
+                            );
+                          }
 
-                    return child;
-                  },
+                          // No Data
+                          else if (!snapshot.hasData ||
+                              snapshot.data!.docs.length == 0) {
+                            child = Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    Stack(
+                                      children: [
+                                        Icon(
+                                          Ionicons.image_outline,
+                                          size: 100,
+                                          color: Colors.white,
+                                        ),
+                                        Positioned(
+                                          top: 25,
+                                          left: 10,
+                                          child: Icon(
+                                            Ionicons.alert_outline,
+                                            size: 30,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 5),
+                                    Text("Tidak ada postingan"),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return child;
+                        },
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ),
-        ],
-      ),
+          );
+        }
+
+        return child;
+      },
     );
   }
 }

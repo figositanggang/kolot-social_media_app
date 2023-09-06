@@ -6,15 +6,14 @@ import 'package:kolot/firebase_options.dart';
 import 'package:kolot/provider/add_post_navigation_provider_.dart';
 import 'package:kolot/provider/bottom_navigation_provider.dart';
 import 'package:kolot/provider/auth_provider.dart';
+import 'package:kolot/provider/home_navigation_provider.dart';
 import 'package:kolot/provider/search_bar_provider.dart';
 import 'package:kolot/provider/text_field_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
     MultiProvider(
@@ -25,6 +24,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProvider(
             create: (context) => AddPostNavigationProvider()),
+        ChangeNotifierProvider(create: (context) => HomeNavigationProvider()),
       ],
       child: const MyApp(),
     ),
@@ -33,6 +33,9 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +57,9 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
         listTileTheme: ListTileThemeData(
-          subtitleTextStyle: TextStyle(color: Colors.white),
+          subtitleTextStyle: GoogleFonts.poppins().apply(
+            color: Colors.white,
+          ),
         ),
         snackBarTheme:
             SnackBarThemeData(backgroundColor: Color.fromARGB(255, 0, 0, 0)),

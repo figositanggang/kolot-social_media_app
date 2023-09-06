@@ -1,11 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:kolot/components/post_card.dart';
 import 'package:kolot/models/post_model.dart';
+import 'package:kolot/provider/home_navigation_provider.dart';
 
 import 'package:kolot/resources/post_method.dart';
+import 'package:provider/provider.dart';
 
 class HomeNavigation extends StatefulWidget {
   const HomeNavigation({super.key});
@@ -16,23 +18,36 @@ class HomeNavigation extends StatefulWidget {
 
 class _HomeNavigationState extends State<HomeNavigation>
     with AutomaticKeepAliveClientMixin {
-  ScrollController _scrollController = ScrollController();
-  bool _scrollDown = false;
-  bool _showAppBar = true;
+  bool scrollDown = false;
+  bool showAppBar = true;
+
+  late ScrollController scrollController;
+  late HomeNavigationProvider homeNavigationProv;
+
+  List<PostModel> posts = [];
 
   @override
   void initState() {
     super.initState();
 
-    _scrollController.addListener(
+    homeNavigationProv =
+        Provider.of<HomeNavigationProvider>(context, listen: false);
+    scrollController =
+        ScrollController(initialScrollOffset: homeNavigationProv.scrollOffset);
+
+    setState(() {});
+
+    scrollController.addListener(
       () {
-        if (_scrollController.position.userScrollDirection ==
+        homeNavigationProv.scrollOffset = scrollController.position.pixels;
+        // print(scrollController.position.pixels);
+        if (scrollController.position.userScrollDirection ==
             ScrollDirection.reverse) {
-          _scrollDown = true;
-          _showAppBar = false;
+          scrollDown = true;
+          showAppBar = false;
         } else {
-          _scrollDown = false;
-          _showAppBar = true;
+          scrollDown = false;
+          showAppBar = true;
         }
         Future.delayed(Duration(milliseconds: 500), () {
           setState(() {});
@@ -44,70 +59,82 @@ class _HomeNavigationState extends State<HomeNavigation>
   @override
   void dispose() {
     super.dispose();
-    _scrollController.dispose();
-    _scrollController.removeListener(() {});
+    scrollController.dispose();
+    scrollController.removeListener(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
-    return StreamBuilder(
-      stream: PostMethods.getPostDetails(),
-      builder: (context, snapshot) {
-        Widget child = Center();
+    return Stack(
+      children: [
+        Positioned.fill(
+          top: 0,
+          left: 0,
+          child: StreamBuilder(
+            stream: PostMethods.getAllPosts(),
+            builder: (context, snapshot) {
+              Widget child = Center();
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          child = Center(
-            child: CircularProgressIndicator(),
-          );
-        }
+              // Waiting
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                child = Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-        if (snapshot.hasData) {
-          if (snapshot.data!.docs.length > 0) {
-            final List<QueryDocumentSnapshot<Map<String, dynamic>>> data =
-                snapshot.data!.docs;
+              // Ada Data
+              if (snapshot.hasData) {
+                final posts = snapshot.data!.docs;
 
-            child = Column(
-              children: [
-                AnimatedContainer(
-                  height: _showAppBar ? kToolbarHeight : 0,
-                  duration: Duration(milliseconds: 100),
-                  child: AppBar(
-                    title: Text(
-                      "Kolot",
-                      style: TextStyle(
-                        fontFamily: GoogleFonts.arvo().fontFamily,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
+                child = ListView.builder(
+                  padding: EdgeInsets.only(top: kToolbarHeight),
+                  controller: scrollController,
+                  itemCount: posts.length,
+                  // shrinkWrap: true,
+                  itemBuilder: (context, index) {
+                    final post = PostModel.fromSnap(posts[index]);
+
+                    return PostCard(
+                      post: post,
+                      docId: posts[index].id,
+                    );
+                  },
+                );
+              } else {
+                child = Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+              return child;
+            },
+          ),
+        ),
+
+        // App Bar
+        Positioned(
+          top: 0,
+          left: 0,
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: 100),
+            curve: Curves.easeInOutCubic,
+            height: showAppBar ? kToolbarHeight : 0,
+            width: MediaQuery.of(context).size.width,
+            child: AppBar(
+              foregroundColor: showAppBar ? Colors.white : Colors.transparent,
+              title: Text(
+                "Kolot",
+                style: TextStyle(
+                  fontFamily: GoogleFonts.arvo().fontFamily,
+                  letterSpacing: 2,
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      final post = PostModel.fromSnap(data[index]);
-
-                      return PostCard(
-                        post: post,
-                        postId: data[index].id,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          } else {
-            child = Center(
-              child: Text("Belum ada postingan"),
-            );
-          }
-        }
-
-        return child;
-      },
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,60 +1,90 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kolot/models/user_model.dart';
 
 class FollowMethods {
   static FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static User _currentUser = FirebaseAuth.instance.currentUser!;
 
-  static Future<String> follow({
-    required String followerId,
-    required String followingId,
-  }) async {
-    String res = '';
+  // Follow
+  static Future<String> follow(String ouid) async {
+    String res = 'error';
 
-    DocumentSnapshot followingSnap =
-        await _firestore.collection("users").doc(followingId).get();
-    DocumentSnapshot followerSnap =
-        await _firestore.collection("users").doc(followerId).get();
+    // Current User Snap
+    DocumentSnapshot currentUserSnap =
+        await _firestore.collection("users").doc(_currentUser.uid).get();
+    // Other User Snap
+    DocumentSnapshot otherUserSnap =
+        await _firestore.collection("users").doc(ouid).get();
 
-    // Followers yang di-follow
-    List followerFollowing = followingSnap['followers'];
+    // Following Current User
+    List followingCurrentUser = currentUserSnap['following'];
+    // Follower Other User
+    List followerOtherUser = otherUserSnap['followers'];
 
-    // Following follower
-    List followingFollower = followerSnap['following'];
+    // Tambah Following Current User
+    followingCurrentUser.add(ouid);
+    await _firestore
+        .collection("users")
+        .doc(_currentUser.uid)
+        .update({"following": followingCurrentUser});
 
-    // Belum di-follow
-    if (!followerFollowing.contains(followerId)) {
-      // Tambah Follower yang di-follow
-      followerFollowing.add(followerId);
-      await _firestore
-          .collection("users")
-          .doc(followingId)
-          .update({"followers": followerFollowing});
-
-      // Tambah Following follower
-      followingFollower.add(followingId);
-      await _firestore
-          .collection("users")
-          .doc(followerId)
-          .update({"following": followingFollower});
-
-      res = "success";
-    }
-
-    // Sudah di-follow
-    else {
-      followerFollowing.remove(followerId);
-      await _firestore
-          .collection("users")
-          .doc(followingId)
-          .update({"followers": followerFollowing});
-
-      // Tambah Following follower
-      followingFollower.remove(followingId);
-      await _firestore
-          .collection("users")
-          .doc(followerId)
-          .update({"following": followingFollower});
-    }
+    // Tambah Follower Other User
+    followerOtherUser.add(_currentUser.uid);
+    await _firestore
+        .collection("users")
+        .doc(ouid)
+        .update({"followers": followerOtherUser});
 
     return res;
+  }
+
+  static Future<String> unFollow(String ouid) async {
+    String res = "error";
+
+    // Current User Snap
+    DocumentSnapshot currentUserSnap =
+        await _firestore.collection("users").doc(_currentUser.uid).get();
+    // Other User Snap
+    DocumentSnapshot otherUserSnap =
+        await _firestore.collection("users").doc(ouid).get();
+
+    // Following Current User
+    List followingCurrentUser = currentUserSnap['following'];
+    // Follower Other User
+    List followerOtherUser = otherUserSnap['followers'];
+
+    // Hapus Following Current User
+    followingCurrentUser.remove(ouid);
+    await _firestore
+        .collection("users")
+        .doc(_currentUser.uid)
+        .update({"following": followingCurrentUser});
+
+    // Hapus Follower Other User
+    followerOtherUser.remove(_currentUser.uid);
+    await _firestore
+        .collection("users")
+        .doc(ouid)
+        .update({"followers": followerOtherUser});
+
+    return res;
+  }
+
+  // Check Following
+  static Future<bool> isFollowed(String ouid) async {
+    DocumentSnapshot<Map<String, dynamic>> snap =
+        await _firestore.collection("users").doc(ouid).get();
+
+    UserModel user = UserModel.fromSnap(snap);
+
+    // Followed
+    if (user.followers.contains(_currentUser.uid)) {
+      return true;
+    }
+
+    return false;
   }
 }

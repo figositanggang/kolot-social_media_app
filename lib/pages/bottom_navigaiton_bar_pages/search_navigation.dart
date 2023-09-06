@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:kolot/models/user_model.dart';
+import 'package:kolot/pages/other_user_page.dart';
 import 'package:kolot/provider/search_bar_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -20,27 +21,35 @@ class _SearchNavigationState extends State<SearchNavigation>
 
   // carii
   search(String text) async {
-    QuerySnapshot get1;
-    QuerySnapshot get2;
-    get1 = await FirebaseFirestore.instance
+    QuerySnapshot snap;
+
+    snap = await FirebaseFirestore.instance
         .collection("users")
         .where(
           "username".toLowerCase(),
-          isGreaterThan: text.toLowerCase(),
+          isGreaterThanOrEqualTo: text.toLowerCase(),
         )
         .get();
 
-    // get2 = await FirebaseFirestore.instance
-    //     .collection("users")
-    //     .where(
-    //       "username".toLowerCase(),
-    //       isLessThanOrEqualTo: text.toLowerCase(),
-    //     )
-    //     .get();
+    List temp = [];
+    snap.docs.forEach((element) {
+      var user = UserModel.fromSnap(element);
+      String name = user.name.toLowerCase();
+      String username = user.username.toLowerCase();
+      String search = text.toLowerCase();
 
-    setState(() {
-      users = get1.docs;
+      if (username.contains(search) ||
+          username.compareTo(search) == 0 ||
+          name.contains(search) ||
+          name.compareTo(search) == 0) {
+        temp.add(element);
+      }
     });
+
+    users = temp.toSet().toList();
+    temp.clear();
+
+    setState(() {});
   }
 
   @override
@@ -54,57 +63,72 @@ class _SearchNavigationState extends State<SearchNavigation>
         SystemChannels.textInput.invokeListMethod("TextInput.hide");
       },
       child: Scaffold(
-        body: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: searchBarProvider.controller,
-                  decoration: InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    hintText: "cari...",
-                    suffixIcon: IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () {
-                        searchBarProvider.controller.text = "";
-                      },
-                      icon: Icon(Ionicons.close),
-                      color: Colors.blue,
-                    ),
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: searchBarProvider.controller,
+                decoration: InputDecoration(
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  hintText: "cari...",
+                  suffixIcon: IconButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      searchBarProvider.controller.text = "";
+                      setState(() {});
+                    },
+                    icon: Icon(Ionicons.close),
+                    color: Colors.blue,
                   ),
-                  onEditingComplete: () {
-                    search(searchBarProvider.controller.text);
-                  },
-                  onChanged: (value) {
-                    search(searchBarProvider.controller.text);
-                  },
-                  style: TextStyle(color: Colors.blue),
                 ),
+                onEditingComplete: () {
+                  search(searchBarProvider.controller.text);
+                },
+                onChanged: (value) {
+                  search(searchBarProvider.controller.text);
+                },
+                style: TextStyle(color: Colors.blue),
+              ),
 
-                // Body
-                users.length != 0
-                    ? Column(
-                        children: List.generate(
-                          users.length,
-                          (index) {
-                            final user = UserModel.fromSnap(users[index]);
+              // Body
+              users.length != 0 && searchBarProvider.controller.text.isNotEmpty
+                  ? Column(
+                      children: List.generate(
+                        users.length,
+                        (index) {
+                          final user = UserModel.fromSnap(users[index]);
 
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage:
-                                    CachedNetworkImageProvider(user.photoUrl),
-                              ),
-                              title: Text(user.username),
-                              onTap: () {},
-                            );
-                          },
-                        ),
-                      )
-                    : Center(),
-              ],
-            ),
+                          return ListTile(
+                            contentPadding: EdgeInsets.all(10),
+                            leading: CircleAvatar(
+                              backgroundImage:
+                                  CachedNetworkImageProvider(user.photoUrl),
+                            ),
+                            title: Text(user.username),
+                            subtitle: Text(
+                              user.name,
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(.5)),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OtherUserPage(
+                                    uid: user.uid,
+                                    user: user,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    )
+                  : Center(),
+            ],
           ),
         ),
       ),

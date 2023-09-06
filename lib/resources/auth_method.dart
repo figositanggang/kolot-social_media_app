@@ -1,24 +1,21 @@
-import 'dart:js_interop';
+import 'dart:io';
+import 'dart:html' as html;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:kolot/models/user_model.dart';
 import 'package:kolot/resources/storage_method.dart';
 
 class AuthMethods {
-  static final FirebaseAuth auth = FirebaseAuth.instance;
-  static final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFirestore _firebaseFirestore =
+      FirebaseFirestore.instance;
 
-  // Get Current User Details
-  static Stream getUserDetails() {
-    User currentUser = auth.currentUser!;
-
-    return firebaseFirestore
-        .collection("users")
-        .doc(currentUser.uid)
-        .snapshots();
+  // Get User Details
+  static Stream getUserDetails(String uid) {
+    return _firebaseFirestore.collection("users").doc(uid).snapshots();
   }
 
   // Sign In
@@ -28,7 +25,7 @@ class AuthMethods {
     required String password,
   }) async {
     try {
-      await auth.signInWithEmailAndPassword(
+      await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -60,25 +57,40 @@ class AuthMethods {
     required String username,
     required String name,
     required String bio,
-    required Uint8List file,
+    required file,
   }) async {
     String res = "Some error occurred";
 
     try {
       // register user
-      UserCredential userCredential = await auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      if (!userCredential.isNull) {
-        String photoUrl = await StorageMethods.uploadMedia(
-          childName: "profilePics",
-          file: file,
-          isPost: false,
-        );
+      if (userCredential.user!.uid != null) {
+        String photoUrl = "";
 
-        print("image ada");
+        // Upload PP From Web
+        if (kIsWeb) {
+          file as html.File;
+
+          photoUrl = await StorageMethods.uploadMediaWeb(
+            childName: "profilePics",
+            file: file,
+          );
+        }
+
+        // Upload PP From Mobile
+        else {
+          file as File;
+
+          photoUrl = await StorageMethods.uploadMediaMobile(
+            childName: "profilePics",
+            file: file,
+          );
+        }
 
         UserModel user = UserModel(
           uid: userCredential.user!.uid,
@@ -92,7 +104,7 @@ class AuthMethods {
         );
 
         // add user to database
-        await firebaseFirestore
+        await _firebaseFirestore
             .collection("users")
             .doc(userCredential.user!.uid)
             .set(
@@ -109,7 +121,7 @@ class AuthMethods {
 
   // Sign Out
   static Future<void> signOut(BuildContext context) async {
-    await auth.signOut();
+    await _auth.signOut();
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text("Berhasil Keluar"),

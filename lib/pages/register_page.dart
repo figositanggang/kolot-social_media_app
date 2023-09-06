@@ -1,11 +1,15 @@
+import 'dart:io';
+import 'dart:html' as html;
+
 import 'package:email_validator/email_validator.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_whisperer/image_whisperer.dart';
 import 'package:kolot/components/text_button.dart';
 import 'package:kolot/components/text_field.dart';
 import 'package:kolot/pages/home_page.dart';
-import 'package:kolot/provider/add_post_navigation_provider_.dart';
 import 'package:kolot/provider/auth_provider.dart';
 import 'package:kolot/resources/auth_method.dart';
 import 'package:kolot/utils/utils.dart';
@@ -21,7 +25,8 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final key = GlobalKey<FormState>();
-  Uint8List? image;
+  File? image;
+  html.File? webImage;
 
   TextEditingController email = TextEditingController();
   TextEditingController password = TextEditingController();
@@ -30,28 +35,122 @@ class _RegisterPageState extends State<RegisterPage> {
   TextEditingController bio = TextEditingController();
 
 // Select Image
-  void selectImage(AddPostNavigationProvider provider) async {
-    image = await pickImage(ImageSource.gallery, provider: provider);
+  void selectImage() async {
+    // Select From Web
+    if (kIsWeb) {
+      webImage = await Utils.pickImage(ImageSource.gallery);
 
-    if (image != null) {
+      print("Image: $webImage");
+    }
+
+    // Select From Mobile
+    else {
+      image = await Utils.pickImage(ImageSource.gallery);
+    }
+
+    if (image != null || webImage != null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Gambar berhasil dipuload")));
     }
     setState(() {});
   }
 
+  // Check Platform
+  Widget checkPlatform({
+    File? image,
+    html.File? webImage,
+  }) {
+    // Web
+    if (kIsWeb) {
+      // Image Ada
+      if (webImage != null) {
+        BlobImage blobImage = BlobImage(webImage, name: webImage.name);
+        final url = blobImage.url!;
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Container(
+                  child: SafeArea(
+                    child: Container(
+                      color: Colors.black,
+                      child: InteractiveViewer(
+                        child: Image.network(url),
+                        maxScale: 5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+          child: CircleAvatar(
+            backgroundImage: NetworkImage(url),
+            radius: 75,
+          ),
+        );
+      }
+
+      // Image Tidak Ada
+      else {
+        return CircleAvatar(
+          backgroundImage: NetworkImage(
+              "https://res.cloudinary.com/unlinked/image/upload/v1690390451/1200px-Default_pfp.svg_vxmzyk.png"),
+          radius: 75,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        );
+      }
+    }
+
+    // Mobile
+    else {
+      // Image Ada
+      if (image != null) return mobileImage(image);
+
+      // Image Kosong
+      return CircleAvatar(
+        backgroundImage: NetworkImage(
+            "https://res.cloudinary.com/unlinked/image/upload/v1690390451/1200px-Default_pfp.svg_vxmzyk.png"),
+        radius: 75,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      );
+    }
+  }
+
+  Widget mobileImage(File image) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Container(
+              child: SafeArea(
+                child: PhotoView(
+                  imageProvider: FileImage(image),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      child: CircleAvatar(
+        backgroundImage: FileImage(image),
+        radius: 75,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final addPostNavigationProvider =
-        Provider.of<AddPostNavigationProvider>(context);
 
     return GestureDetector(
       onTap: () {
         SystemChannels.textInput.invokeListMethod("TextInput.hide");
       },
       child: Scaffold(
-        // backgroundColor: Colors.red,
         body: Center(
           child: SingleChildScrollView(
             child: Form(
@@ -64,40 +163,13 @@ class _RegisterPageState extends State<RegisterPage> {
                     // Logo
                     Stack(
                       children: [
-                        image != null
-                            ? GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => Container(
-                                          child: SafeArea(
-                                            child: PhotoView(
-                                              imageProvider:
-                                                  MemoryImage(image!),
-                                            ),
-                                          ),
-                                        ),
-                                      ));
-                                },
-                                child: CircleAvatar(
-                                  backgroundImage: MemoryImage(image!),
-                                  radius: 75,
-                                ),
-                              )
-                            : CircleAvatar(
-                                backgroundImage: NetworkImage(
-                                    "https://res.cloudinary.com/unlinked/image/upload/v1690390451/1200px-Default_pfp.svg_vxmzyk.png"),
-                                radius: 75,
-                                backgroundColor:
-                                    Theme.of(context).scaffoldBackgroundColor,
-                              ),
+                        checkPlatform(image: image, webImage: webImage),
                         Positioned(
                           right: 0,
                           bottom: 0,
                           child: IconButton(
                             onPressed: () {
-                              selectImage(addPostNavigationProvider);
+                              selectImage();
                             },
                             icon: Icon(Icons.add_a_photo),
                             color: Colors.white,
@@ -194,7 +266,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: Center(child: Text("Daftar")),
                       onTap: () async {
                         if (key.currentState!.validate()) {
-                          if (image == null) {
+                          // Gambar Belum Ada
+                          if (image == null && webImage == null) {
                             return showDialog(
                               context: context,
                               barrierDismissible: false,
@@ -212,6 +285,8 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             );
                           }
+
+                          // Gambar Sudah Ada
                           authProvider.isLoading = true;
                           showDialog(
                             context: context,
@@ -233,7 +308,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             name: name.text,
                             bio: bio.text,
                             password: password.text,
-                            file: image!,
+                            file: image == null ? webImage : image,
                           );
                           authProvider.isLoading = false;
 

@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  appinio_video_player: ^1.2.2
   cached_network_image: ^3.2.3
   cloud_firestore: ^4.8.3
   cupertino_icons: ^1.0.2
@@ -38,14 +39,19 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^5.1.0
+  http: ^1.1.0
   image_picker: ^1.0.1
+  image_picker_web: ^3.1.1
+  image_whisperer: ^0.11.1-dev.1
   ionicons: ^0.2.2
   line_icons: ^2.0.3
+  mime: ^1.0.4
+  path: ^1.8.3
   photo_view: ^0.14.0
   provider: ^6.0.5
   random_text_reveal: ^0.0.6
   shared_preferences: ^2.2.0
-  string_validator: ^1.0.0
+  string_validator: ^0.3.0
   video_player: ^2.7.0
 
 dev_dependencies:

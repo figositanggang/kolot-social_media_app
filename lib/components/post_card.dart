@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:ionicons/ionicons.dart';
 import 'package:kolot/models/post_model.dart';
 import 'package:kolot/models/user_model.dart';
 import 'package:kolot/pages/comments_page.dart';
+import 'package:kolot/pages/home_page.dart';
 import 'package:kolot/pages/other_user_page.dart';
 import 'package:kolot/provider/bottom_navigation_provider.dart';
 import 'package:kolot/resources/post_method.dart';
@@ -15,39 +18,53 @@ import 'package:provider/provider.dart';
 
 class PostCard extends StatefulWidget {
   final PostModel post;
-  final String postId;
+  final String docId;
+
   PostCard({
     super.key,
     required this.post,
-    required this.postId,
+    required this.docId,
   });
 
   @override
-  State<PostCard> createState() => _PostCardState();
+  State<PostCard> createState() => PostCardState();
 }
 
-class _PostCardState extends State<PostCard> {
+class PostCardState extends State<PostCard> {
   final _currentUser = FirebaseAuth.instance.currentUser!;
   final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
   double _opacity = 0;
 
-  checkLike() {
-    if (widget.post.likes.contains(_currentUser.uid)) {
-      return Icon(Icons.favorite);
-    } else {
-      return Icon(Icons.favorite_border);
-    }
+  late PostModel post;
+
+  // late CustomVideoPlayerController customeController;
+  // late VideoPlayerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    post = widget.post;
+
+    setState(() {});
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+
+    // customeController.dispose();
+  }
+
+  // Get User
   Future<UserModel> _getUser() async {
-    DocumentSnapshot snap = await firebaseFirestore
-        .collection("users")
-        .doc(widget.post.userId)
-        .get();
+    DocumentSnapshot snap =
+        await firebaseFirestore.collection("users").doc(post.userId).get();
 
     return UserModel.fromSnap(snap);
   }
 
+  // Delete Post
   _deletePost() async {
     // Loading
     showDialog(
@@ -59,13 +76,9 @@ class _PostCardState extends State<PostCard> {
     );
 
     // hapus post
-    String res = await PostMethods.deletePost(widget.postId);
+    String res = await PostMethods.deletePost(post, widget.docId);
 
     if (res == "success") {
-      print("Berhasil hapus");
-      Navigator.pop(context);
-      Navigator.pop(context);
-      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Postingan berhasil dihapus")),
       );
@@ -74,11 +87,66 @@ class _PostCardState extends State<PostCard> {
         SnackBar(content: Text("Postingan gagal dihapus")),
       );
     }
+
+    Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(),
+        ),
+        (route) => false);
+  }
+
+  // Check Like
+
+  // Check File Type
+  Widget checkFileType(BuildContext context, PostModel post) {
+    String type = post.type;
+
+    // if (type == "image") {
+    // }
+    return CachedNetworkImage(
+      width: MediaQuery.of(context).size.width,
+      imageUrl: post.mediaUrl,
+      fadeInCurve: Curves.fastOutSlowIn,
+      fadeInDuration: Duration(milliseconds: 100),
+      fit: BoxFit.cover,
+      // placeholder: (context, url) => Center(
+      //   child: Icon(
+      //     LineIcons.circleAlt,
+      //     size: 200,
+      //     opticalSize: 1,
+      //   ),
+      // ),
+    );
+
+    // else {
+    //   controller = VideoPlayerController.networkUrl(Uri.parse(post.mediaUrl))
+    //     ..initialize().then((value) {
+    //       setState(() {});
+    //     });
+    //   customeController = CustomVideoPlayerController(
+    //     context: context,
+    //     videoPlayerController: controller,
+    //   );
+    //   return Stack(
+    //     children: [
+    //       AspectRatio(
+    //         aspectRatio: controller.value.aspectRatio,
+    //         child: CustomVideoPlayer(
+    //             customVideoPlayerController: customeController),
+    //       ),
+    //       Positioned.fill(
+    //         child: GestureDetector(
+    //           onTap: () {},
+    //         ),
+    //       ),
+    //     ],
+    //   );
+    // }
   }
 
   @override
   Widget build(BuildContext context) {
-    final post = widget.post;
     final bottomNavigationProvider =
         Provider.of<BottomNavigationProvider>(context);
 
@@ -101,8 +169,7 @@ class _PostCardState extends State<PostCard> {
                         MaterialPageRoute(
                           builder: (context) => OtherUserPage(
                             user: user,
-                            userId: user.uid,
-                            key: PageStorageKey("other_user_page"),
+                            uid: user.uid,
                           ),
                         ),
                       );
@@ -181,74 +248,89 @@ class _PostCardState extends State<PostCard> {
               },
             ),
 
-            // Image
-            GestureDetector(
-              onDoubleTap: () {
-                if (!widget.post.likes.contains(_currentUser.uid)) {
-                  PostMethods.giveRemoveLike(
-                    postId: widget.postId,
-                    userId: _currentUser.uid,
+            // Content
+            FutureBuilder(
+              future:
+                  firebaseFirestore.collection("posts").doc(widget.docId).get(),
+              builder: (context, snapshot) {
+                Widget child = Center(child: Text("Error"));
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  child = SizedBox(
+                    height: 300,
+                    width: MediaQuery.of(context).size.width,
+                    child: Center(
+                      child: ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                        child: Text("Loading..."),
+                      ),
+                    ),
                   );
                 }
 
-                setState(() {
-                  _opacity = 1;
-                });
-                Future.delayed(Duration(seconds: 1), () {
-                  setState(() {
-                    _opacity = 0;
-                  });
-                });
-              },
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PhotoView(
-                          imageProvider:
-                              CachedNetworkImageProvider(post.mediaUrl)),
-                    ));
-              },
-              child: Stack(
-                children: [
-                  // Post Media
-                  CachedNetworkImage(
-                    width: MediaQuery.of(context).size.width,
-                    imageUrl: post.mediaUrl,
-                    fadeInCurve: Curves.fastOutSlowIn,
-                    fadeInDuration: Duration(milliseconds: 100),
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Center(
-                      child: Icon(
-                        LineIcons.circleAlt,
-                        size: 200,
-                        opticalSize: 1,
-                      ),
-                    ),
-                  ),
+                if (snapshot.hasData) {
+                  final post = PostModel.fromSnap(snapshot.data!);
 
-                  // Like Effect
-                  Positioned.fill(
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: AnimatedOpacity(
-                        duration: Duration(milliseconds: 500),
-                        opacity: _opacity,
-                        child: Icon(
-                          Icons.favorite,
-                          size: 125,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(.5),
-                              blurRadius: 20,
-                            )
-                          ],
+                  child = GestureDetector(
+                    onDoubleTap: () async {
+                      setState(() {
+                        _opacity = 1;
+                      });
+                      Future.delayed(Duration(seconds: 1), () {
+                        setState(() {
+                          _opacity = 0;
+                        });
+                      });
+                      if (!post.likes.contains(_currentUser.uid)) {
+                        await PostMethods.giveRemoveLike(
+                          postId: widget.docId,
+                          userId: _currentUser.uid,
+                        );
+                      }
+                    },
+                    onTap: () {
+                      if (post.type == "image") {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PhotoView(
+                              imageProvider:
+                                  CachedNetworkImageProvider(post.mediaUrl),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        // Post Media
+                        checkFileType(context, post),
+
+                        // Like Effect
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: AnimatedOpacity(
+                              duration: Duration(milliseconds: 500),
+                              opacity: _opacity,
+                              child: Icon(
+                                Icons.favorite,
+                                size: 125,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(.5),
+                                    blurRadius: 20,
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
+                  );
+                }
+                return child;
+              },
             ),
 
             SizedBox(height: 5),
@@ -258,18 +340,43 @@ class _PostCardState extends State<PostCard> {
                 // Likes
                 IconButton(
                   tooltip: "Suka",
-                  icon: Row(
-                    children: [
-                      checkLike(),
-                      SizedBox(width: 5),
-                      Text("${post.likes.length}"),
-                    ],
+                  icon: FutureBuilder(
+                    future: firebaseFirestore
+                        .collection("posts")
+                        .doc(widget.docId)
+                        .get(),
+                    builder: (context, snapshot) {
+                      Widget child = Row(
+                        children: [
+                          Icon(Icons.favorite_border),
+                          SizedBox(width: 5),
+                          Text("0"),
+                        ],
+                      );
+
+                      if (snapshot.hasData) {
+                        PostModel _post = PostModel.fromSnap(snapshot.data!);
+                        child = Row(
+                          children: [
+                            _post.likes.contains(_currentUser.uid)
+                                ? Icon(Icons.favorite)
+                                : Icon(Icons.favorite_border),
+                            SizedBox(width: 5),
+                            Text("${_post.likes.length}"),
+                          ],
+                        );
+                      }
+
+                      return child;
+                    },
                   ),
-                  onPressed: () {
-                    PostMethods.giveRemoveLike(
-                      postId: widget.postId,
+                  onPressed: () async {
+                    await PostMethods.giveRemoveLike(
+                      postId: widget.docId,
                       userId: _currentUser.uid,
                     );
+
+                    setState(() {});
                   },
                 ),
 
@@ -280,17 +387,19 @@ class _PostCardState extends State<PostCard> {
                     children: [
                       Icon(LineIcons.comment),
                       SizedBox(width: 5),
-                      Text("${post.comments.length}"),
+                      Text("${widget.post.comments.length}"),
                     ],
                   ),
                   onPressed: () {
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CommentsPage(
-                            postId: widget.postId,
-                          ),
-                        ));
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CommentsPage(
+                          key: PageStorageKey("post-card-key"),
+                          postId: widget.docId,
+                        ),
+                      ),
+                    );
                   },
                 ),
               ],

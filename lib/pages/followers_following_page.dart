@@ -110,7 +110,7 @@ class _FollowersFollowingPageState extends State<FollowersFollowingPage>
                           context,
                           MaterialPageRoute(
                             builder: (context) => OtherUserPage(
-                              userId: user.uid,
+                              uid: user.uid,
                               user: user,
                             ),
                           ),
